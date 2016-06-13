@@ -2,11 +2,11 @@ package core
 
 import (
 	"errors"
-	"os"
+	"io"
 )
 
 //ParseCmapFormat12 parse cmap table format 12 https://www.microsoft.com/typography/otspec/cmap.htm
-func (t *TTFParser) ParseCmapFormat12(fd *os.File) (bool, error) {
+func (t *TTFParser) ParseCmapFormat12(fd io.ReadSeeker) (bool, error) {
 
 	t.Seek(fd, "cmap")
 	t.Skip(fd, 2) //skip version

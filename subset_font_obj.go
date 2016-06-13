@@ -97,6 +97,19 @@ func (s *SubsetFontObj) SetTTFByPath(ttfpath string) error {
 	return nil
 }
 
+//SetTTFFromBytes set ttf
+func (s *SubsetFontObj) SetTTFFromBytes(ttfBytes []byte) error {
+	useKerning := s.ttfFontOption.UseKerning
+	s.ttfp.SetUseKerning(useKerning)
+
+	buf := bytes.NewReader(ttfBytes)
+	err := s.ttfp.ParseReader(buf)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 //AddChars add char to map CharacterToGlyphIndex
 func (s *SubsetFontObj) AddChars(txt string) error {
 	for _, runeValue := range txt {

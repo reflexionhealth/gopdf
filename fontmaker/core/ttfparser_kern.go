@@ -2,11 +2,11 @@ package core
 
 import (
 	"fmt"
-	"os"
+	"io"
 )
 
 //Parsekern parse kerning table  https://www.microsoft.com/typography/otspec/kern.htm
-func (t *TTFParser) Parsekern(fd *os.File) error {
+func (t *TTFParser) Parsekern(fd io.ReadSeeker) error {
 
 	t.kern = nil //clear
 	err := t.Seek(fd, "kern")
@@ -42,7 +42,7 @@ func (t *TTFParser) Parsekern(fd *os.File) error {
 	return nil
 }
 
-func (t *TTFParser) parsekernSubTable(fd *os.File) error {
+func (t *TTFParser) parsekernSubTable(fd io.ReadSeeker) error {
 
 	t.Skip(fd, 2+2) //skip version and length
 
@@ -64,7 +64,7 @@ func (t *TTFParser) parsekernSubTable(fd *os.File) error {
 	return nil
 }
 
-func (t *TTFParser) parsekernSubTableFormat0(fd *os.File) error {
+func (t *TTFParser) parsekernSubTableFormat0(fd io.ReadSeeker) error {
 	nPairs, err := t.ReadUShort(fd)
 	if err != nil {
 		return err
