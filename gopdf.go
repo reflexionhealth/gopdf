@@ -337,7 +337,6 @@ func (gp *GoPdf) Cell(rectangle *Rect, text string) error {
 
 //AddTTFFontWithOption : add font file
 func (gp *GoPdf) AddTTFFontWithOption(family string, ttfpath string, option TtfOption) error {
-
 	if _, err := os.Stat(ttfpath); os.IsNotExist(err) {
 		return err
 	}
@@ -353,6 +352,33 @@ func (gp *GoPdf) AddTTFFontWithOption(family string, ttfpath string, option TtfO
 		return err
 	}
 
+	gp.initTTFFont(subsetFont)
+	return nil
+}
+
+//AddTTFFont : add font file
+func (gp *GoPdf) AddTTFFont(family string, ttfpath string) error {
+	return gp.AddTTFFontWithOption(family, ttfpath, defaultTtfFontOption())
+}
+
+//AddTTFFontData : add font from bytes
+func (gp *GoPdf) AddTTFFontData(family string, ttfBytes []byte, option TtfOption) error {
+	subsetFont := new(SubsetFontObj)
+	subsetFont.init(func() *GoPdf {
+		return gp
+	})
+	subsetFont.SetTtfFontOption(option)
+	subsetFont.SetFamily(family)
+	err := subsetFont.SetTTFFromBytes(ttfBytes)
+	if err != nil {
+		return err
+	}
+
+	gp.initTTFFont(subsetFont)
+	return nil
+}
+
+func (gp *GoPdf) initTTFFont(subsetFont *SubsetFontObj) {
 	unicodemap := new(UnicodeMap)
 	unicodemap.init(func() *GoPdf {
 		return gp
@@ -389,18 +415,13 @@ func (gp *GoPdf) AddTTFFontWithOption(family string, ttfpath string, option TtfO
 
 	if gp.indexOfProcSet != -1 {
 		procset := gp.pdfObjs[gp.indexOfProcSet].(*ProcSetObj)
-		if !procset.Realtes.IsContainsFamily(family) {
-			procset.Realtes = append(procset.Realtes, RelateFont{Family: family, IndexOfObj: index, CountOfFont: gp.curr.CountOfFont})
+		if !procset.Realtes.IsContainsFamily(subsetFont.Family) {
+			relate := RelateFont{Family: subsetFont.Family, IndexOfObj: index, CountOfFont: gp.curr.CountOfFont}
+			procset.Realtes = append(procset.Realtes, relate)
 			subsetFont.CountOfFont = gp.curr.CountOfFont
 			gp.curr.CountOfFont++
 		}
 	}
-	return nil
-}
-
-//AddTTFFont : add font file
-func (gp *GoPdf) AddTTFFont(family string, ttfpath string) error {
-	return gp.AddTTFFontWithOption(family, ttfpath, defaultTtfFontOption())
 }
 
 //KernOverride override kern value
