@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/signintech/gopdf/fontmaker/core"
+	"github.com/reflexionhealth/gopdf/fontmaker/core"
 )
 
 //ErrCharNotFound char not found

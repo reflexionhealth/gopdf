@@ -1,29 +1,29 @@
-gopdf
-====
+ gopdf
+=======
 
 gopdf is a simple library for generating PDF document written in Go lang.
 
 
-####Changelogs
+### Notice
 
-**2015-08-07**
-
-- Add support for Unicode subfont embedding. (Chinese, Korean and Japanese fonts are now supported.)
-- No longer need to create font maps.
+Forked from signintech/gopdf to support loading a font from in-memory.
 
 
-##Installation
+ Installation
+--------------
  ```
- go get -u github.com/signintech/gopdf
+ go get -u github.com/reflexionhealth/gopdf
  ```
 
-##Sample code
+
+ Sample code
+-------------
 
   ```go
   package main
   import (
-	"fmt"
-	"github.com/signintech/gopdf"
+    "fmt"
+    "github.com/reflexionhealth/gopdf"
   )
 
   func main() {
@@ -36,7 +36,7 @@ gopdf is a simple library for generating PDF document written in Go lang.
         log.Print(err.Error())
         return
     }
-    
+
     err = pdf.SetFont("HDZB_5", "", 14)
     if err != nil {
         log.Print(err.Error())
@@ -46,7 +46,4 @@ gopdf is a simple library for generating PDF document written in Go lang.
     pdf.WritePdf("hello.pdf")
 
   }
-
   ```
-  
-visit https://github.com/oneplus1000/gopdfsample for more samples.

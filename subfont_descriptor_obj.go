@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"fmt"
 
-	"github.com/signintech/gopdf/fontmaker/core"
+	"github.com/reflexionhealth/gopdf/fontmaker/core"
 )
 
 //SubfontDescriptorObj pdf subfont descriptorObj object
