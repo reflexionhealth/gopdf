@@ -129,7 +129,7 @@ func (gp *GoPdf) GetY() float64 {
 }
 
 //SplitLines : Splits text into several lines using the current text style and a max width.
-func (gp *GoPdf) SplitLines(text string, width int) ([]string, error) {
+func (gp *GoPdf) SplitLines(text string, width float64) ([]string, error) {
 	err := gp.curr.Font_ISubset.AddChars(text) // add characters to CharacterToGlyphIndex
 	if err != nil {
 		return nil, err
@@ -141,8 +141,8 @@ func (gp *GoPdf) SplitLines(text string, width int) ([]string, error) {
 	offset := 0
 	prevChar := rune(0)
 	lineStart := 0
-	lineWidth := 0
 	lineBreak := -1
+	lineWidth := float64(0)
 	for offset < len(runes) {
 		char := runes[offset]
 		if char == ' ' || char == '\t' || char == '\n' {
@@ -390,7 +390,7 @@ func (gp *GoPdf) Cell(rectangle *Rect, text string) error {
 //Lines are wrapped at any "\n" character (newline) in the text, and when a
 //line of text reaches the width of the rectangle.
 func (gp *GoPdf) MultiCell(rectangle *Rect, text string) error {
-	lines, err := gp.SplitLines(text, int(rectangle.W))
+	lines, err := gp.SplitLines(text, float64(rectangle.W))
 	if err != nil {
 		return nil
 	}
@@ -682,7 +682,7 @@ func (gp *GoPdf) getContent() *ContentObj {
 	return content
 }
 
-func runeWidth(f *SubsetFontObj, fontSize int, curr rune, prev rune) (int, error) {
+func runeWidth(f *SubsetFontObj, fontSize int, curr rune, prev rune) (float64, error) {
 	unitsPerEm := int(f.ttfp.UnitsPerEm())
 	width, err := f.CharWidth(curr)
 	if err != nil {
@@ -702,6 +702,6 @@ func runeWidth(f *SubsetFontObj, fontSize int, curr rune, prev rune) (int, error
 		pairKern := kern(f, prev, curr, prevGlyph, currGlyph)
 		pairWidth = convertTTFUnit2PDFUnit(int(pairKern), unitsPerEm)
 	}
-
-	return int(width) + int(pairWidth), nil
+	pdfWidth := (float64(width) + float64(pairWidth)) * float64(fontSize) / float64(unitsPerEm)
+	return pdfWidth, nil
 }
