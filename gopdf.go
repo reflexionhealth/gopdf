@@ -6,6 +6,7 @@ import (
 	ioutil "io/ioutil"
 	"log"
 	"os"
+	"strings"
 	//"container/list"
 	"fmt"
 	"strconv"
@@ -125,6 +126,56 @@ func (gp *GoPdf) SetY(y float64) {
 //GetY : get current position y
 func (gp *GoPdf) GetY() float64 {
 	return gp.curr.Y
+}
+
+//SplitLines : Splits text into several lines using the current text style and a max width.
+func (gp *GoPdf) SplitLines(text string, width int) ([]string, error) {
+	err := gp.curr.Font_ISubset.AddChars(text) // add characters to CharacterToGlyphIndex
+	if err != nil {
+		return nil, err
+	}
+
+	var lines []string
+	runes := []rune(strings.Replace(text, "\r\n", "\n", -1))
+
+	offset := 0
+	prevChar := rune(0)
+	lineStart := 0
+	lineWidth := 0
+	lineBreak := -1
+	for offset < len(runes) {
+		char := runes[offset]
+		if char == ' ' || char == '\t' || char == '\n' {
+			lineBreak = offset
+		}
+
+		charWidth, err := runeWidth(gp.curr.Font_ISubset, gp.curr.Font_Size, char, prevChar)
+		if err != nil {
+			return nil, err
+		}
+
+		lineWidth += charWidth
+		if char == '\n' || lineWidth > width {
+			if lineBreak == -1 || (lineBreak == lineStart) {
+				lineBreak = offset
+			} else {
+				offset = lineBreak + 1
+			}
+
+			lines = append(lines, string(runes[lineStart:lineBreak]))
+			lineStart = offset
+			lineWidth = 0
+			lineBreak = -1
+		}
+
+		prevChar = char
+		offset++
+	}
+	if offset != lineStart {
+		lines = append(lines, text[lineStart:offset])
+	}
+
+	return lines, nil
 }
 
 //Image : draw image
@@ -284,7 +335,7 @@ func (gp *GoPdf) GetBytesPdf() []byte {
 	return b
 }
 
-//Text write text start at current x,y ( current y is the baseline of text )
+//Text : write text start at current x,y ( current y is the baseline of text )
 func (gp *GoPdf) Text(text string) error {
 
 	err := gp.curr.Font_ISubset.AddChars(text)
@@ -300,7 +351,7 @@ func (gp *GoPdf) Text(text string) error {
 	return nil
 }
 
-//CellWithOption create cell of text ( use current x,y is upper-left corner of cell)
+//CellWithOption : create cell of text ( use current x,y is upper-left corner of cell)
 func (gp *GoPdf) CellWithOption(rectangle *Rect, text string, opt CellOption) error {
 	err := gp.curr.Font_ISubset.AddChars(text)
 	if err != nil {
@@ -330,6 +381,25 @@ func (gp *GoPdf) Cell(rectangle *Rect, text string) error {
 	err = gp.getContent().AppendStreamSubsetFont(rectangle, text, defaultopt)
 	if err != nil {
 		return err
+	}
+
+	return nil
+}
+
+//MultiCell : create multiple cells of text, one for each line in the text.
+//Lines are wrapped at any "\n" character (newline) in the text, and when a
+//line of text reaches the width of the rectangle.
+func (gp *GoPdf) MultiCell(rectangle *Rect, text string) error {
+	lines, err := gp.SplitLines(text, int(rectangle.W))
+	if err != nil {
+		return nil
+	}
+
+	for _, line := range lines {
+		err := gp.CellWithOption(nil, line, CellOption{Align: Left | Top, Border: 0, Float: Bottom})
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -424,7 +494,7 @@ func (gp *GoPdf) initTTFFont(subsetFont *SubsetFontObj) {
 	}
 }
 
-//KernOverride override kern value
+//KernOverride : override kern value
 func (gp *GoPdf) KernOverride(family string, fn FuncKernOverride) error {
 	i := 0
 	max := len(gp.pdfObjs)
@@ -454,7 +524,7 @@ func (gp *GoPdf) SetTextColor(r uint8, g uint8, b uint8) {
 	gp.curr.setTextColor(rgb)
 }
 
-//SetStrokeColor set the color for the stroke
+//SetStrokeColor : set the color for the stroke
 func (gp *GoPdf) SetStrokeColor(r uint8, g uint8, b uint8) {
 	gp.getContent().AppendStreamSetColorStroke(r, g, b)
 }
@@ -474,7 +544,7 @@ func (gp *GoPdf) MeasureTextWidth(text string) (float64, error) {
 	return textWidthPdfUnit, nil
 }
 
-//Curve Draws a Bézier curve (the Bézier curve is tangent to the line between the control points at either end of the curve)
+//Curve : Draws a Bézier curve (the Bézier curve is tangent to the line between the control points at either end of the curve)
 // Parameters:
 // - x0, y0: Start point
 // - x1, y1: Control point 1
@@ -610,4 +680,28 @@ func (gp *GoPdf) getContent() *ContentObj {
 	}
 
 	return content
+}
+
+func runeWidth(f *SubsetFontObj, fontSize int, curr rune, prev rune) (int, error) {
+	unitsPerEm := int(f.ttfp.UnitsPerEm())
+	width, err := f.CharWidth(curr)
+	if err != nil {
+		return 0, err
+	}
+
+	pairWidth := 0
+	if prev != 0 && f.ttfFontOption.UseKerning {
+		currGlyph, err := f.CharIndex(curr)
+		if err != nil {
+			return 0, err
+		}
+		prevGlyph, err := f.CharIndex(prev)
+		if err != nil {
+			return 0, err
+		}
+		pairKern := kern(f, prev, curr, prevGlyph, currGlyph)
+		pairWidth = convertTTFUnit2PDFUnit(int(pairKern), unitsPerEm)
+	}
+
+	return int(width) + int(pairWidth), nil
 }
