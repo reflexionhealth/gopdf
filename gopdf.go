@@ -389,14 +389,15 @@ func (gp *GoPdf) Cell(rectangle *Rect, text string) error {
 //MultiCell : create multiple cells of text, one for each line in the text.
 //Lines are wrapped at any "\n" character (newline) in the text, and when a
 //line of text reaches the width of the rectangle.
-func (gp *GoPdf) MultiCell(rectangle *Rect, text string) error {
-	lines, err := gp.SplitLines(text, float64(rectangle.W))
+//The height of the rectangle specifies the line-height for each line.
+func (gp *GoPdf) MultiCell(rect *Rect, text string) error {
+	lines, err := gp.SplitLines(text, float64(rect.W))
 	if err != nil {
 		return nil
 	}
 
 	for _, line := range lines {
-		err := gp.CellWithOption(nil, line, CellOption{Align: Left | Top, Border: 0, Float: Bottom})
+		err := gp.CellWithOption(rect, line, CellOption{Align: Left | Top, Border: 0, Float: Bottom})
 		if err != nil {
 			return err
 		}
