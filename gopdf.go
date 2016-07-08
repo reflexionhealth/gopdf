@@ -171,6 +171,51 @@ func (gp *GoPdf) Image(picPath string, x float64, y float64, rect *Rect) {
 
 }
 
+//ImageFromBytes : draw image
+func (gp *GoPdf) ImageFromBytes(uniqName string, data []byte, x float64, y float64, rect *Rect) {
+
+	//check
+	cacheImageIndex := -1
+	for _, imgcache := range gp.curr.ImgCaches {
+		if uniqName == imgcache.Path {
+			cacheImageIndex = imgcache.Index
+			break
+		}
+	}
+
+	//create img object
+	imgobj := new(ImageObj)
+	imgobj.init(func() *GoPdf {
+		return gp
+	})
+	imgobj.SetImageData(data)
+	imgobj.SetImagePath(uniqName)
+	if rect == nil {
+		rect = imgobj.GetRect()
+	}
+
+	if cacheImageIndex == -1 { //new image
+
+		index := gp.addObj(imgobj)
+		if gp.indexOfProcSet != -1 {
+			//ยัดรูป
+			procset := gp.pdfObjs[gp.indexOfProcSet].(*ProcSetObj)
+			gp.getContent().AppendStreamImage(gp.curr.CountOfImg, x, y, rect)
+			procset.RealteXobjs = append(procset.RealteXobjs, RealteXobject{IndexOfObj: index})
+			//เก็บข้อมูลรูปเอาไว้
+			var imgcache ImageCache
+			imgcache.Index = gp.curr.CountOfImg
+			imgcache.Path = uniqName
+			gp.curr.ImgCaches = append(gp.curr.ImgCaches, imgcache)
+			gp.curr.CountOfImg++
+		}
+
+	} else { //same img
+		gp.getContent().AppendStreamImage(cacheImageIndex, x, y, rect)
+	}
+
+}
+
 //AddPage : add new page
 func (gp *GoPdf) AddPage() {
 	page := new(PageObj)
