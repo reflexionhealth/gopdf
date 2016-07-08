@@ -13,6 +13,7 @@ import (
 type ImageObj struct {
 	buffer    bytes.Buffer
 	imagepath string
+	imagedata []byte
 }
 
 func (i *ImageObj) init(funcGetRoot func() *GoPdf) {
@@ -20,22 +21,17 @@ func (i *ImageObj) init(funcGetRoot func() *GoPdf) {
 }
 
 func (i *ImageObj) build() error {
-
-	file, err := os.Open(i.imagepath)
+	data, err := i.getImageData()
 	if err != nil {
-		//fmt.Printf("0--%+v\n",err)
 		return err
 	}
-	defer file.Close()
 
-	m, _, err := image.Decode(file)
+	m, _, err := image.Decode(bytes.NewReader(data))
 	if err != nil {
 		return err
 	}
 
 	imageRect := m.Bounds()
-
-	b, _ := ioutil.ReadFile(i.imagepath)
 
 	i.buffer.WriteString("<</Type /XObject\n")
 	i.buffer.WriteString("/Subtype /Image\n")
@@ -46,9 +42,9 @@ func (i *ImageObj) build() error {
 	i.buffer.WriteString("/Filter /DCTDecode\n")
 	//me.buffer.WriteString("/Filter /FlateDecode\n")
 	//me.buffer.WriteString("/DecodeParms <</Predictor 15 /Colors 3 /BitsPerComponent 8 /Columns 675>>\n")
-	i.buffer.WriteString(fmt.Sprintf("/Length %d\n>>\n", len(b))) // /Length 62303>>\n
+	i.buffer.WriteString(fmt.Sprintf("/Length %d\n>>\n", len(data))) // /Length 62303>>\n
 	i.buffer.WriteString("stream\n")
-	i.buffer.Write(b)
+	i.buffer.Write(data)
 	i.buffer.WriteString("\nendstream\n")
 
 	return nil
@@ -62,13 +58,37 @@ func (i *ImageObj) getObjBuff() *bytes.Buffer {
 	return &(i.buffer)
 }
 
+func (i *ImageObj) getImageData() ([]byte, error) {
+	if len(i.imagedata) == 0 {
+		file, err := os.Open(i.imagepath)
+		if err != nil {
+			return nil, err
+		}
+
+		i.imagedata, err = ioutil.ReadAll(file)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return i.imagedata, nil
+}
+
 func (i *ImageObj) SetImagePath(path string) {
 	i.imagepath = path
 }
 
+func (i *ImageObj) SetImageData(data []byte) {
+	i.imagedata = data
+}
+
 func (i *ImageObj) GetRect() *Rect {
-	file, err := os.Open(i.imagepath)
-	m, _, err := image.Decode(file)
+	data, err := i.getImageData()
+	if err != nil {
+		return nil
+	}
+
+	m, _, err := image.Decode(bytes.NewReader(data))
 	if err != nil {
 		return nil
 	}
